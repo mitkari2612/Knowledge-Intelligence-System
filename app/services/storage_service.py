@@ -1,8 +1,8 @@
 import boto3 
 from botocore.exceptions import ClientError 
-from config import Config 
+from ..config import Config 
 
-class S3Storage:
+class StorageService:
     def __init__(self):
         self.s3 = boto3.client(
             's3',
@@ -12,8 +12,6 @@ class S3Storage:
 
         self.bucket = Config.AWS_BUCKET_NAME
 
-    
-
     def upload_file(self, file_obj, filename):
         try: 
             self.s3.upload_fileobj(file_obj, self.bucket, filename)
@@ -22,7 +20,6 @@ class S3Storage:
             print(f"Error uploading file: {e}")
             return False
         
-    
     def get_file(self, filename):
         try:
             response = self.s3.get_object(Bucket=self.bucket, Key=filename)

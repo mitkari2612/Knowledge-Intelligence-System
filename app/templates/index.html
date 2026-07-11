@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Intelligence System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Knowledge Intelligence System</h1>
+            <p>AI-Powered Knowledge Retrieval and Analysis</p>
+        </header>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <h2>Upload Documents</h2>
+                <div class="upload-area" id="uploadArea">
+                    <p>Drag and drop files here or click to select</p>
+                    <input type="file" id="fileInput" multiple hidden>
+                </div>
+                <button onclick="document.getElementById('fileInput').click()" class="btn">
+                    Select Files
+                </button>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="query-section">
+                <h2>Ask a Question</h2>
+                <div class="query-input-group">
+                    <textarea 
+                        id="queryInput" 
+                        placeholder="Enter your question here..."
+                        rows="4"
+                    ></textarea>
+                    <button onclick="submitQuery()" class="btn btn-primary">
+                        Submit Query
+                    </button>
+                </div>
+                <div id="queryStatus"></div>
+                <div id="response" class="response-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Upload functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f0f0f0';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = 'transparent';
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.innerHTML = '';
+
+            for (let file of files) {
+                uploadFile(file);
+            }
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            const uploadStatus = document.getElementById('uploadStatus');
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    uploadStatus.innerHTML += `<p class="success">✓ ${file.name} uploaded successfully</p>`;
+                } else {
+                    uploadStatus.innerHTML += `<p class="error">✗ ${file.name} upload failed: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                uploadStatus.innerHTML += `<p class="error">✗ Error uploading ${file.name}</p>`;
+            });
+        }
+
+        // Query functionality
+        function submitQuery() {
+            const queryInput = document.getElementById('queryInput');
+            const queryText = queryInput.value.trim();
+
+            if (!queryText) {
+                alert('Please enter a question');
+                return;
+            }
+
+            const queryStatus = document.getElementById('queryStatus');
+            queryStatus.innerHTML = '<p class="loading">Processing your query...</p>';
+
+            fetch('/api/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: queryText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                queryStatus.innerHTML = '';
+                const responseBox = document.getElementById('response');
+                if (data.response) {
+                    responseBox.innerHTML = `<h3>Response:</h3><p>${data.response}</p>`;
+                } else {
+                    responseBox.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                queryStatus.innerHTML = '';
+                document.getElementById('response').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            });
+        }
+
+        // Allow Enter key to submit query
+        document.getElementById('queryInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                submitQuery();
+            }
+        });
+    </script>
+</body>
+</html>
